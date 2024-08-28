@@ -46,22 +46,38 @@ public class FullSpectrum {
 
     }
 
-    /*def inferring_peptide(n, p, l, peptide=[""]):
+    public List<Double> helper(int n, double parent, List<Double> in, int start, List<String> peptide)
+    {
+        if (peptide.size() == n) return peptide;
+        int end = 0;
+        List<Character> cList = null;
 
-    if len(peptide[0])==n:
-        return peptide
+        for (int i = start; i < n-1; i++)
+        {
+            for (int j = i+1; j < n; j++)
+            {
+                cList = map.getOrDefault(round(in.get(j)-in.get(i), 5), null);
+                if (cList != null )
+                {
+                    end = j;
+                    break;
+                }
+            }
+        }
 
-    BYions = [] # store all possible aa between the postion i and j of l.
-    for i in range(len(l)-1):
-        for j in range(i+1, len(l)):
-            aa = mass_aa.get(round(l[j]-l[i], 5), 0)
-            if aa:
-                BYions.append([i, j, aa])
-    
-    if BYions[0]:        
-        new_l = l[BYions[0][1]:] # update l
-        new_p = BYions[0][2] # add new aa need to be added into candidate peptide
-        new_peptide = [p+np for np in new_p for p in peptide] # update candidate peptide
-        peptide =inferring_peptide(n, p, new_l, new_peptide)*/
+        List<String> next = new ArrayList<>();
+        if (cList != null)
+        {
+            for (char c : cList)
+            {
+                for (String s : peptide)
+                {
+                    next.add(s.append(c));
+                }
+            }
+
+            return helper(n, in, end+1, next);
+        }
+    }
     
 }
