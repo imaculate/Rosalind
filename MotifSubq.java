@@ -1,6 +1,7 @@
 import java.util.Scanner;
 
 public class MotifSubq {
+    // Longest common sunsequence
     public static void main(String[] args)
     {
         final Scanner scanner = new Scanner(System.in);
@@ -32,6 +33,7 @@ public class MotifSubq {
 
     }
 
+    // ALternatively find length and work backwards
     public static String longestCommonSubq(String s, String t, int i, int j, String[][] table)
     {
         if (i == s.length()|| j == t.length()) 

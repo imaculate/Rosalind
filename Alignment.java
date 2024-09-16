@@ -1,3 +1,4 @@
+import java.util.Arrays;
 import java.util.Scanner;
 
 public class Alignment {
@@ -48,6 +49,40 @@ public class Alignment {
             }
         }
 
+        /*for (int[] arr: table)
+        {
+            System.out.println(Arrays.toString(arr));
+        }*/
+
         System.out.println(table[sLen][tLen]);
+        StringBuilder sbS = new StringBuilder(), sbT = new StringBuilder();
+        int i = sLen, j = tLen;
+        while (i > 0 || j > 0)
+        {
+            if (j > 0 && table[i][j] == 1 + table[i][j-1])
+            {
+                sbT.append(t.charAt(j-1));
+                sbS.append('-');
+                j--;
+
+            }
+            else if (i > 0 && table[i][j] == 1 + table[i-1][j])
+            {
+                sbS.append(s.charAt(i-1));
+                sbT.append('-');
+                i--;
+            }
+            else
+            {
+                sbS.append(s.charAt(i-1));
+                sbT.append(t.charAt(j-1));
+                i--;
+                j--;
+            }
+
+        }
+
+        System.out.println(sbS.reverse().toString());
+        System.out.println(sbT.reverse().toString());
     }
 }
