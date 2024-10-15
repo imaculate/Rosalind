@@ -114,7 +114,6 @@ public class LocalAlignment {
                     maxJ = j;
                 }
 
-                maxScore = Math.max(maxScore, scores[i][j]);
             }
         }
 
