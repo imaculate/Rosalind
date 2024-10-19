@@ -2,36 +2,39 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Scanner;
+import java.util.Arrays;
 
 public class Ksim {
-    public static int MAX_SCORE = 1000000;
-    public static void main(String[] args)
-    {
-        final Scanner scanner = new Scanner(System.in);
-        int k = scanner.nextInt();
-        // System.out.println("Bandwith is: "+ k);
-        String s = scanner.next();
-        // System.out.println("Motif is: "+ s);
-        String t = scanner.next();
-        // System.out.println("Sequence is: "+ t);
-        scanner.close();
+    // java -Xmx6g Ksim
+    public static int MAX_SCORE = 1000000, batchSize = 20, k, sLen, tLen;
+    public static String s, t;
 
-
-        int sLen = s.length(), tLen = t.length();
-        //System.out.println("Computing substrings of " + t + " at most " + k + " different from " + s);
-
-        int lastIdx = 0;
-        String sub = "";
-        int subLen = 0;
-
-        int maxS = tLen - sLen + k;
-        
-        for (int i = 0; i <= maxS; i++)
+    static class ScoreThread implements Runnable {
+        int startIdx;
+        public ScoreThread(int startIdx)
         {
-            lastIdx = Math.min(i + sLen + k + 1, tLen);
+            this.startIdx = startIdx;
+        }
 
-            sub = t.substring(i, lastIdx);
-            subLen = sub.length();
+        public void run()
+        {
+            try
+            {
+                work();
+            }
+            catch (Exception e)
+            {
+                e.printStackTrace();
+            }
+        }
+
+        public void work()
+        {
+            // System.out.println("Thread " + Thread.currentThread().getId() + " is running");
+            int lastIdx = Math.min(startIdx + sLen + k + 1, tLen);
+
+            String sub = t.substring(startIdx, lastIdx);
+            int subLen = sub.length();
 
             int idx = subLen;
 
@@ -43,7 +46,7 @@ public class Ksim {
                 {
                     if (scores[sLen][idx] <= k)
                     {
-                        System.out.println( i + 1 +  " " + idx);
+                        System.out.println(startIdx + 1 +  " " + idx);
                     }
                     idx--;
                 }
@@ -55,12 +58,55 @@ public class Ksim {
                 {
                     if (scores[idx][sLen] <= k)
                     {
-                        System.out.println(i + 1 +  " " + idx);
+                        System.out.println(startIdx + 1 +  " " + idx);
                     }
                     idx --;
                 }
             }
         }
+    }
+
+    public static void main(String[] args)
+    {
+        final Scanner scanner = new Scanner(System.in);
+        k = scanner.nextInt();
+        // System.out.println("Bandwith is: "+ k);
+        s = scanner.next();
+        // System.out.println("Motif is: "+ s);
+        t = scanner.next();
+        // System.out.println("Sequence is: "+ t);
+        scanner.close();
+
+        sLen = s.length();
+        tLen = t.length();
+        int maxS = tLen - sLen + k;  
+        int numThreads = maxS + 1;
+        System.out.println("Processing: " + numThreads + " threads");
+        int numBatches = Math.ceilDiv(numThreads, batchSize);
+        Thread[] threads = new Thread[batchSize];
+        for (int b = 0; b < numBatches; b++)
+        {
+            int start = b * batchSize;
+            int end = Math.min(numThreads, start + batchSize);
+
+            // System.out.println("Starting batch: " + b);
+            for (int i = start; i < end; i++)
+            {
+                threads[i - start]
+                = new Thread(new ScoreThread(i));
+                threads[i- start].start();
+            }
+            System.out.println("Waiting for batch: " + b);
+            for (int i = start; i < end; i++)
+            {
+                try {             
+                    threads[i -start].join(); 
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        System.out.println("Done");
     }
 
     public static int[][] editDistanceKband(String s1, String s2, int bandwidth)
@@ -71,10 +117,7 @@ public class Ksim {
 
         for (int i = 0; i <= l1; i ++)
         {
-            for (int j = 0; j <= l2; j ++)
-            {
-                scores[i][j] = MAX_SCORE;
-            }
+            Arrays.fill(scores[i], MAX_SCORE);
         }
 
         for (int i = 0; i <= bandwidth + diff; i++)
@@ -121,7 +164,7 @@ public class Ksim {
 
     public static boolean insideBand(int start, int end, int k)
     {
-        return (start - end >= -k) && (start - end <= k);
+        return Math.abs(start - end) <= k;
     }
 
 }
