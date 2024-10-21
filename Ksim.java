@@ -6,6 +6,7 @@ import java.util.Arrays;
 
 public class Ksim {
     // java -Xmx6g Ksim
+    // On cloudVM java -Xmx256g  Ksim < rosalind_ksim.txt > test1.txt
     public static int MAX_SCORE = 1000000, batchSize = 20, k, sLen, tLen;
     public static String s, t;
 
