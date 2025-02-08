@@ -6,11 +6,9 @@ import java.util.Queue;
 import java.util.Scanner;
 import java.util.Set;
 
-import javax.print.attribute.HashPrintServiceAttributeSet;
-
 public class Disjoint {
     static String dna = "";
-     public static void main(String[] args)
+    public static void main(String[] args)
     {
         final Scanner scanner = new Scanner(System.in);
         dna = scanner.nextLine();
