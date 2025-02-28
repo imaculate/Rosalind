@@ -8,6 +8,7 @@ public class Order {
     public static void main(String[] args) {
         final Scanner scanner = new Scanner(System.in);
         String line = scanner.nextLine();
+        scanner.close();
         String[] symbols = line.split(" ");
         int n = scanner.nextInt();
         generate(symbols, n, "");

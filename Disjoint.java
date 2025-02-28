@@ -70,7 +70,7 @@ public class Disjoint {
     {
         if (nPos[1] > d1.length() || nPos[2] > d2.length() || nPos[0] > dna.length()) return false;
 
-        Set<Character> set = new HashSet();
+        Set<Character> set = new HashSet<>();
         for (int i = 0; i < 3; i++)
         {
             if (mv[i] == 0) continue;
