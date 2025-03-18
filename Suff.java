@@ -1,172 +1,168 @@
+import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 
-// Adapted from https://www.geeksforgeeks.org/ukkonens-suffix-tree-construction-part-6/
 class SuffixTreeNode
 {
-    Map<Character, SuffixTreeNode> children = new HashMap<>();
-    SuffixTreeNode suffixLink  = null;
-    int start = 0, end = 0, suffixIndex = -1;
-    public SuffixTreeNode(int start, int end)
+    SuffixTreeNode parent;
+    List<SuffixTreeNode> children = new ArrayList<>();
+    int val;
+
+    public SuffixTreeNode(int val, SuffixTreeNode parent)
     {
-        this.start = start;
-        this.end = end;
+        this.val = val;
+        this.parent = parent;
     }
 
-    public int edgeLength()
+    public void addChild(SuffixTreeNode child)
     {
-        return end - start + 1;
+        children.add(child);
+    }
+
+    public void removeChild(SuffixTreeNode child)
+    {
+        children.remove(child);
+    }
+
+    public void updateParent(SuffixTreeNode newParent)
+    {
+        this.parent = newParent;
     }
 }
 
-
 class SuffixTree
 {
-    String text;
-    int len = -1;
-    SuffixTreeNode root;
-    static int remainingSuffixCount;
-    static int leafEnd = -1;
-    static int splitEnd;
-
-    SuffixTreeNode activeNode;
-    char activeEdge;
-    int activeLength = 0;
-    SuffixTreeNode lastNewNode = null;
-    
-
-    public SuffixTree(String text)
+    class InsertResult
     {
-        this.text = text;
-        this.len = text.length();
-        this.root = new SuffixTreeNode(-1, -1);
-        this.activeNode = root;
-    }
+        int edgeStart;
+        SuffixTreeNode parent;
+        boolean overlap;
 
-    public boolean walkDown(SuffixTreeNode currNode)
-    {
-        if (activeLength < currNode.edgeLength()) return false;
-        activeEdge = text.charAt(len - remainingSuffixCount + 1);
-        activeLength -= currNode.edgeLength();
-        activeNode = currNode;
-        return true;
-    }
-
-    public void build()
-    {
-        
-        for (int i = 0; i < len; i++)
+        public InsertResult(int edgeStart, SuffixTreeNode parent, boolean overlap)
         {
-            extendSuffixTree(i);
+            this.edgeStart = edgeStart;
+            this.parent = parent;
+            this.overlap = overlap;
         }
-        
-        /*int labelHeight = 0;
-        setSuffixIndexByDFS(root, labelHeight);
-        freeSuffixTreeByPostOrder(root);*/
+
+    }
+    List<SuffixTreeNode> nodes = new ArrayList<>();
+    Map<Map.Entry<Integer, Integer>, Map.Entry<Integer, Integer>> edges = new HashMap<>();
+    Map<SuffixTreeNode, Integer> descendants = new HashMap<>();
+    String word = "";
+    int N = 0;
+
+    public SuffixTree()
+    {
+        nodes.add(new SuffixTreeNode(0, null));
     }
 
-     public void extendSuffixTree(int pos)
+    public InsertResult insertPosition(int start, SuffixTreeNode parent)
     {
-        leafEnd = pos;
-        remainingSuffixCount++;
-        lastNewNode = null;
+        for (SuffixTreeNode child: parent.children)
+        {
+            Map.Entry<Integer, Integer> edge = edges.get(new AbstractMap.SimpleEntry<>(parent.val, child.val));
+            int edgeStart = edge.getKey(), edgeEnd = edge.getValue();
+            if (word.substring(start, Math.min(N, start + edgeEnd - edgeStart)).equals(word.substring(edgeStart, edgeEnd)))
+            {
+                return insertPosition(start + edgeEnd - edgeStart, child);
+            }
+            else if (word.charAt(edgeStart) == word.charAt(start))
+            {
+                return new InsertResult(start, child, true);
+            }
+        }
 
-        while (remainingSuffixCount > 0) {
+        return new InsertResult(start, parent, false);
+    }
 
-            if (activeLength == 0) activeEdge = text.charAt(pos);
+    public void addNode(SuffixTreeNode parent, int edgeStart, int edgeEnd, SuffixTreeNode child)
+    {
+        if (child == null) child = new SuffixTreeNode(nodes.size(), parent);
+        nodes.add(child);
+        parent.addChild(child);
+        // System.out.println("In addNode: Adding edge from: " + parent.val + " to " + child.val);
+        edges.put(new AbstractMap.SimpleEntry<>(parent.val, child.val), new AbstractMap.SimpleEntry<>(edgeStart, edgeEnd));
+    }
 
-            if (!activeNode.children.containsKey(activeEdge)) {
-                activeNode.children.put(activeEdge, new SuffixTreeNode(pos, leafEnd));
 
-                if (lastNewNode != null) {
-                    lastNewNode.suffixLink = activeNode;
-                    lastNewNode = null;
-                }
+    public void addWord(String word)
+    {
+        if (word.charAt(word.length() - 1) != '$') word += '$';
+        this.word = word;
+        this.N = word.length();
+
+        for (int i = 0; i < N; i++)
+        {
+            InsertResult res = insertPosition(i, nodes.get(0));
+            if (res.overlap)  
+            {
+                Map.Entry<Integer, Integer> edgeKey = new AbstractMap.SimpleEntry<>(res.parent.parent.val, res.parent.val);
+                Map.Entry<Integer, Integer> edge = edges.get(edgeKey);
+                // if (edge == null) System.out.println("No edge from: " + res.parent.parent.val + " to " + res.parent.val);
+                int pEdgeStart = edge.getKey(), pEdgeEnd = edge.getValue();
+                int insertLen = 0;
+                while (word.substring(res.edgeStart, res.edgeStart + insertLen).equals(word.substring(pEdgeStart, pEdgeStart + insertLen))) insertLen += 1;
+                
+                SuffixTreeNode newNode = new SuffixTreeNode(nodes.size(), res.parent.parent);
+                newNode.addChild(res.parent);
+                addNode(res.parent.parent, pEdgeStart, pEdgeStart + insertLen - 1, newNode);
+
+                // Update the parent node since a new node is inserted above it
+                // System.out.println("Removing edge from: " + edgeKey.getKey() + " to " + edgeKey.getValue());
+                edges.remove(edgeKey);
+                res.parent.parent.removeChild(res.parent);
+                res.parent.updateParent(newNode);
+                edgeKey = new AbstractMap.SimpleEntry<>(res.parent.parent.val, res.parent.val);
+                // System.out.println("Adding edge from: " + edgeKey.getKey() + " to " + edgeKey.getValue());
+                edges.put(edgeKey, new AbstractMap.SimpleEntry<>(pEdgeStart + insertLen -1, pEdgeEnd));
+
+                // Add new child node
+                addNode(res.parent.parent, res.edgeStart + insertLen - 1, N, null);
+
             }
             else
             {
-                SuffixTreeNode next = activeNode.children.get(activeEdge);
-                if (walkDown(next)) continue;
-
-                if (text.charAt(next.start + activeLength) == text.charAt(pos)) {
-                    if (lastNewNode != null && activeNode != root) {
-                        lastNewNode.suffixLink = activeNode;
-                        lastNewNode = null;
-                    }
-
-                    activeLength++;
-                    break;
-                }
-
-                splitEnd = next.start + activeLength - 1;
-                SuffixTreeNode split = new SuffixTreeNode(next.start, splitEnd);
-                activeNode.children.put(activeEdge, split);
-
-                split.children.put(text.charAt(pos), new SuffixTreeNode(pos, leafEnd));
-                next.start += activeLength;
-                split.children.put(activeEdge, next);
-
-                if (lastNewNode != null) lastNewNode.suffixLink = split;
-                lastNewNode = split;
-            }
-
-            remainingSuffixCount--;
-            if (activeNode == root && activeLength > 0)
-            {
-                activeLength--;
-                activeEdge = text.charAt(pos - remainingSuffixCount + 1);
-            }
-            else if (activeNode != root)
-            {
-                activeNode = activeNode.suffixLink;
-                if (activeNode == null) activeNode = root;
+                addNode(res.parent, res.edgeStart, N, null);
             }
         }
     }
 
-    public void setSuffixIndexByDFS(SuffixTreeNode curr, int labelHeight)
+    public int totalDescendants(SuffixTreeNode baseNode)
     {
-        if (curr == null) return;
-
-        if (curr.start != -1) System.out.println(text.substring(curr.start, curr.end + 1));
-        int leaf = 1;
-        for (SuffixTreeNode child: curr.children.values()) {
-            if (leaf == 1 && curr.start != -1) {
-                System.out.println(" [" + curr.suffixIndex + "]");
-            }
-
-            leaf = 0;
-            setSuffixIndexByDFS(child, labelHeight + child.edgeLength());
+        if(!descendants.containsKey(baseNode))
+        {
+            descendants.put(baseNode, baseNode.children.size() + baseNode.children.stream().mapToInt(c -> totalDescendants(c)).sum());
         }
 
-        if (leaf == 1) {
-            curr.suffixIndex = len - labelHeight;
-            System.out.println(" [" + curr.suffixIndex + "]");
-        }
+        return descendants.get(baseNode);
     }
 
-    public void freeSuffixTreeByPostOrder(SuffixTreeNode curr)
+    // return prefix 
+    public String nodeWord(SuffixTreeNode node)
     {
-        if (curr == null) return;
-
-        for (SuffixTreeNode child: curr.children.values()) {
-            freeSuffixTreeByPostOrder(child);
+        StringBuilder curr = new StringBuilder();
+        Map.Entry<Integer, Integer> edge = null;
+        while (node.val != 0)
+        {
+            edge = edges.get(new AbstractMap.SimpleEntry<>(node.parent.val, node.val));
+            curr.insert(0, word.substring(edge.getKey(), edge.getValue()));
+            node = node.parent;
         }
 
-        if (curr.suffixIndex == -1) curr.end = -1;
+        return curr.toString().replace("$", "");
     }
 
-    public void printSuffixes(SuffixTreeNode curr)
+    public void printEdges()
     {
-        if (curr.start != -1) System.out.println(text.substring(curr.start, curr.end+1));
-        
-        for (SuffixTreeNode child: curr.children.values()) {
-            printSuffixes(child);
+        for (Map.Entry<Integer, Integer> edge: edges.values())
+        {
+            System.out.println(word.substring(edge.getKey(), edge.getValue()));
         }
     }
-
-
     
 }
 
@@ -182,9 +178,9 @@ public class Suff {
                 sb.append(scanner.nextLine());
             }
 
-            SuffixTree tree = new SuffixTree(sb.toString());
-            tree.build();
-            tree.printSuffixes(tree.root);
+            SuffixTree tree = new SuffixTree();
+            tree.addWord(sb.toString());
+            tree.printEdges();
         }
     }
     
