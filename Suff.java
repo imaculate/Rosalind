@@ -97,6 +97,7 @@ class SuffixTree
 
         for (int i = 0; i < N; i++)
         {
+            System.out.println("Inserting: " + word.charAt(i) + " at position " + i);
             InsertResult res = insertPosition(i, nodes.get(0));
             if (res.overlap)  
             {
